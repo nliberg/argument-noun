@@ -1,0 +1,21 @@
+[
+        {
+            "keys": ["a", "a"], "command": "set_motion", "args": {
+                "motion": "vi_expand_to_arguments",
+                "motion_args": {"repeat": 1, "outer": true, "multiline": true}},
+                "context": [{"key": "setting.command_mode"}, {"key": "vi_can_enter_text_object"}]
+        },
+        {
+            "keys": ["i", "a"], "command": "set_motion", "args": {
+                "motion": "vi_expand_to_arguments",
+                "motion_args": {"repeat": 1, "outer": false, "multiline": true}},
+                "context": [{"key": "setting.command_mode"}, {"key": "vi_can_enter_text_object"}]
+        },
+        {
+            "keys": ["o", "a"], "command": "set_motion", "args": {
+                "motion": "vi_expand_to_arguments",
+                "motion_args": {"repeat": 1, "outer": true, "multiline": true}},
+                "context": [{"key": "setting.command_mode"}, {"key": "vi_can_enter_text_object"}]
+        },
+
+]
