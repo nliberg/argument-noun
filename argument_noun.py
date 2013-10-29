@@ -50,13 +50,20 @@ def process_right_part(s, offset):
     # second part: remove all characters after semicolon
     s2 = re.sub(r'(?s);.*', '', s2)
 
-    # second part: if there are two adjacent identifiers without any operator
-    # (eg. +, mod) in between then assume a right parenthesis is missing after
-    # the first identifier and insert one (without affecting character offsets)
+    # second part: if there are two adjacent identifiers with only whitespace
+    # containing a newline in between then assume a right parenthesis is missing
+    # after the first identifier and insert one (without affecting character
+    # offsets)
     def repl_func(m):
-        non_identifiers = ['mod', 'div', 'and', 'or', 'xor', 'not', 'if', 'unless', 'else']
-        if m.group(1) not in non_identifiers and m.group(2) not in non_identifiers:
+        non_identifiers = [
+            'mod', 'div', 'and', 'or', 'xor', 'not', 'if',
+            'unless', 'else', 'const',
+        ]
+        if (m.group(1) not in non_identifiers and m.group(3) not in non_identifiers
+              and '\n' in m.group(2)):
             return ''.join([m.group(1), ')', m.group(2)[1:], m.group(3)])
+        else:
+            return m.group(0)
     s2 = re.sub(r'([a-zA-Z_0-9]+)(\s+)([a-zA-Z_0-9])', repl_func, s2)
 
     return s1 + s2
