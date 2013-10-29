@@ -95,8 +95,10 @@ class ViExpandToArguments(sublime_plugin.TextCommand):
         # preserved but parenthesis and commmas within strings do not
         # affect the later steps
         s = s.replace("\\'", '_').replace('\\"', '!')  # remove string escape codes
-        s = re.sub(r'".*?"|""".*?"""', lambda m: '!' * len(m.group(0)), s)
-        s = re.sub(r"'.*?'|'''.*?'''", lambda m: '!' * len(m.group(0)), s)
+        s = re.sub(r'(?s)""".*?"""', lambda m: '!' * len(m.group(0)), s)
+        s = re.sub(r"(?s)'''.*?'''", lambda m: '!' * len(m.group(0)), s)
+        s = re.sub(r'".*?"', lambda m: '!' * len(m.group(0)), s)
+        s = re.sub(r"'.*?'", lambda m: '!' * len(m.group(0)), s)
 
         # process the part of the string after the cursor in order to
         # decrease the risk that we go too far to the right.
