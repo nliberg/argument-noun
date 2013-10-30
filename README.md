@@ -33,9 +33,9 @@ or
 Notes
 ----------
 
-The plugin is quite syntax agnostic. It however makes the assumptions that an argument list is wrapped in parenthesis, it is preceded by a function name identifier, and that arguments are comma separated.
+The plugin is quite syntax agnostic. It however makes the assumption that an argument list is wrapped in parenthesis, is preceded by a function name identifier, and that arguments are comma separated.
 
-If two identifiers are separated by only white space it is assumed that a right parenthesis after the first identifier is missing, i.e.
+If two identifiers are separated by only a newline and white space it is assumed that a right parenthesis after the first identifier is missing, i.e.
 
     myfunction(a, b, c
     x = 5
