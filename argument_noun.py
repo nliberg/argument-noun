@@ -1,7 +1,5 @@
 # Argument Noun
 #
-# Version 0.9
-#
 # Sublime Text plugin that extends Vintage mode with support
 # for treating function arguments (including parameters) as
 # an 'a' text noun.
@@ -43,30 +41,26 @@ def remove_inner_parenthesis(s):
             characters.append(c)
     return ''.join(characters)
 
-def process_right_part(s, offset):
-    # split string into before and after offset
-    s1, s2 = s[:offset], s[offset:]
+def remove_tail(s):
+    # remove all characters after semicolon
+    s = re.sub(r'(?s);.*', '', s)
 
-    # second part: remove all characters after semicolon
-    s2 = re.sub(r'(?s);.*', '', s2)
-
-    # second part: if there are two adjacent identifiers with only whitespace
-    # containing a newline in between then assume a right parenthesis is missing
-    # after the first identifier and insert one (without affecting character
-    # offsets)
+    # if there are two adjacent identifiers with only whitespace containing
+    # a newline inbetween, assume a right parenthesis is missing after
+    # the first identifier and insert one (while preserving character offsets)
     def repl_func(m):
         non_identifiers = [
             'mod', 'div', 'and', 'or', 'xor', 'not', 'if',
             'unless', 'else', 'const',
         ]
         if (m.group(1) not in non_identifiers and m.group(3) not in non_identifiers
-              and '\n' in m.group(2)):
+              and '\n' in m.group(2) or '\n' in m.group(2)):
             return ''.join([m.group(1), ')', m.group(2)[1:], m.group(3)])
         else:
             return m.group(0)
-    s2 = re.sub(r'([a-zA-Z_0-9]+)(\s+)([a-zA-Z_0-9])', repl_func, s2)
+    s = re.sub(r'([a-zA-Z_0-9]+)(\s+)([a-zA-Z_0-9])', repl_func, s)
 
-    return s1 + s2
+    return s
 
 class ViExpandToArguments(sublime_plugin.TextCommand):
 
@@ -83,8 +77,15 @@ class ViExpandToArguments(sublime_plugin.TextCommand):
         pt = region.a
         r = self.view.line(pt)
         if multiline:
-            r = r.cover(sublime.Region(max(0, pt-300),
-                                       min(self.view.size()-1, pt+80)))
+            last_line = self.view.rowcol(self.view.size()-1)[0]
+            line_no = self.view.rowcol(pt)[0]
+            # make the region of interest span 10 lines backwards and forwards
+            l_beg, l_end = (max(0,         line_no-10),
+                            min(last_line, line_no+10))
+            r = self.view.line(self.view.text_point(l_beg, 0)).cover(
+                self.view.line(self.view.text_point(l_end, 0)))
+            # limit the region just in case the lines are very long
+            r = r.intersection(sublime.Region(pt - 4000, pt + 4000))
 
         # extract the surrounding text and determine the offset
         # from the start of it where the cursor is placed
@@ -100,10 +101,6 @@ class ViExpandToArguments(sublime_plugin.TextCommand):
         s = re.sub(r'".*?"', lambda m: '!' * len(m.group(0)), s)
         s = re.sub(r"'.*?'", lambda m: '!' * len(m.group(0)), s)
 
-        # process the part of the string after the cursor in order to
-        # decrease the risk that we go too far to the right.
-        s = process_right_part(s, cursor_offset)
-
         # find offsets to the start of all non-empty argument lists that
         # precede the cursor
         offsets = [m.start(1) for m in re.finditer(
@@ -114,6 +111,11 @@ class ViExpandToArguments(sublime_plugin.TextCommand):
             offset = offsets[-1]
             args_str = s[offset:]
 
+            # trim the right part of the string at semicolons and at suspected
+            # missing right parenthesis in order to decrease the risk that we
+            # we go too far to the right.
+            args_str = remove_tail(args_str)
+
             # remove any inner parenthesis: "a*min(b, c), d" ==> "a*min______, d"
             args_str = remove_inner_parenthesis(args_str)
 
@@ -122,18 +124,18 @@ class ViExpandToArguments(sublime_plugin.TextCommand):
 
             # find the argument that matches the cursor offset
             i = offset
-            for arg in args:
+            for arg_i, arg in enumerate(args):
                 if cursor_offset <= i + len(arg.rstrip(', ')):
                     # create a region that covers this argument
                     if not outer:
-                        arg = arg.rstrip(', ')
+                        arg = arg.rstrip(', \t\r\n')
                     a = region.a - (cursor_offset - i)
                     b = a + len(arg)
 
                     # if the argument is the last one and outer mode is on,
                     # expand to the left to cover any whitespace or commas
-                    if outer and self.view.substr(b) == ')':
-                        while self.view.substr(a - 1) in ' \t\r\n,':
+                    if outer and arg_i == len(args)-1: #self.view.substr(b) == ')':
+                        while self.view.substr(a - 1) in ', \t\r\n':
                             a -= 1
 
                     return sublime.Region(a, b)
